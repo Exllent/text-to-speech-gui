@@ -1,19 +1,46 @@
-import tkinter as tk
-from tkinter import filedialog, messagebox
+import asyncio
 import json
 import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+import edge_tts
 
 SETTINGS_FILE = "settings.json"
 
 
-def process_text(
-    text: str,
-    output_dir: str,
-    filename: str,
-    prefix: str,
-    postfix: str
+async def _generate_audio(
+        text: str,
+        full_path: str
 ):
-    print(text, output_dir, filename, prefix, postfix)
+    tts = edge_tts.Communicate(
+        text=text,
+        voice="en-US-GuyNeural"
+    )
+    await tts.save(full_path)
+
+
+def process_text(
+        text: str,
+        output_dir: str,
+        filename: str,
+        prefix: str,
+        postfix: str
+) -> bool:
+    try:
+        safe_filename = filename.replace(".mp3", "").strip()
+        full_name = f"{prefix}{safe_filename}{postfix}.mp3"
+        full_path = os.path.join(output_dir, full_name)
+
+        asyncio.run(
+            _generate_audio(text, full_path)
+        )
+
+        return True
+
+    except Exception as ex:
+        print("TTS ERROR:", type(ex).__name__, ex)
+        return False
 
 
 # ==========================
@@ -160,13 +187,16 @@ class App(tk.Tk):
 
         self.save_state()
 
-        process_text(
+        result = process_text(
             text=text,
             output_dir=output_dir,
             filename=filename,
             prefix=prefix,
             postfix=postfix
         )
+        if not result:
+            messagebox.showerror("Error", "Error generate audio")
+            return
 
     def reset_all(self):
         self.clear_text()
