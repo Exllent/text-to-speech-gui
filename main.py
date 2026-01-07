@@ -26,7 +26,7 @@ def process_text(
         filename: str,
         prefix: str,
         postfix: str
-) -> bool:
+) -> str | None:
     try:
         safe_filename = filename.replace(".mp3", "").strip()
         full_name = f"{prefix}{safe_filename}{postfix}.mp3"
@@ -36,11 +36,11 @@ def process_text(
             _generate_audio(text, full_path)
         )
 
-        return True
+        return full_path
 
     except Exception as ex:
         print("TTS ERROR:", type(ex).__name__, ex)
-        return False
+        return None
 
 
 # ==========================
@@ -74,30 +74,35 @@ class App(tk.Tk):
         self.output_dir = tk.StringVar(value=self.settings.get("output_dir", ""))
         self.prefix_var = tk.StringVar(value=self.settings.get("prefix", ""))
         self.postfix_var = tk.StringVar(value=self.settings.get("postfix", ""))
+        self.use_prefix = tk.BooleanVar(value=True)
+        self.use_postfix = tk.BooleanVar(value=True)
 
         self._build_ui()
 
     def create_labeled_entry(
             self,
             label_text: str,
-            text_variable: tk.StringVar | None = None
+            text_variable: tk.StringVar | None = None,
+            use_variable: tk.BooleanVar | None = None
     ) -> tk.Entry:
         tk.Label(self, text=label_text).pack(anchor="w", padx=10, pady=(10, 0))
 
         frame = tk.Frame(self)
         frame.pack(fill="x", padx=10)
 
+        if use_variable is not None:
+            tk.Checkbutton(frame, variable=use_variable).pack(side="left")
+
         entry = tk.Entry(frame, textvariable=text_variable)
-        entry.pack(side="left", fill="x", expand=True)
+        entry.pack(side="left", fill="x", expand=True, padx=5)
 
         tk.Button(
             frame,
             text="Clear",
             command=lambda: entry.delete(0, "end")
-        ).pack(side="left", padx=5)
+        ).pack(side="left")
 
         return entry
-
     def _build_ui(self):
         # ===== MAIN TEXT =====
         tk.Label(self, text="Input text").pack(anchor="w", padx=10)
@@ -125,12 +130,14 @@ class App(tk.Tk):
 
         self.prefix_entry = self.create_labeled_entry(
             label_text="Prefix",
-            text_variable=self.prefix_var
+            text_variable=self.prefix_var,
+            use_variable=self.use_prefix
         )
 
         self.postfix_entry = self.create_labeled_entry(
             label_text="Postfix",
-            text_variable=self.postfix_var
+            text_variable=self.postfix_var,
+            use_variable=self.use_postfix
         )
         # ===== DIRECTORY =====
         tk.Label(self, text="Output directory").pack(anchor="w", padx=10, pady=(10, 0))
@@ -187,17 +194,26 @@ class App(tk.Tk):
 
         self.save_state()
 
-        result = process_text(
+        result_path = process_text(
             text=text,
             output_dir=output_dir,
             filename=filename,
             prefix=prefix,
             postfix=postfix
         )
-        if not result:
+
+        if not result_path:
             messagebox.showerror("Error", "Error generate audio")
             return
 
+        self.clipboard_clear()
+        self.clipboard_append(result_path)
+        self.update()
+
+        messagebox.showinfo(
+            "Done",
+            "Audio generated.\nFile path copied to clipboard."
+        )
     def reset_all(self):
         self.clear_text()
         self.filename_entry.delete(0, "end")
