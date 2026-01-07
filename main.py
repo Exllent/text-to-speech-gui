@@ -74,8 +74,8 @@ class App(tk.Tk):
         self.output_dir = tk.StringVar(value=self.settings.get("output_dir", ""))
         self.prefix_var = tk.StringVar(value=self.settings.get("prefix", ""))
         self.postfix_var = tk.StringVar(value=self.settings.get("postfix", ""))
-        self.use_prefix = tk.BooleanVar(value=True)
-        self.use_postfix = tk.BooleanVar(value=True)
+        self.use_prefix = tk.BooleanVar(value=self.settings.get("use_prefix", True))
+        self.use_postfix = tk.BooleanVar(value=self.settings.get("use_postfix", True))
 
         self._build_ui()
 
@@ -222,7 +222,9 @@ class App(tk.Tk):
         save_settings({
             "output_dir": self.output_dir.get(),
             "prefix": self.prefix_entry.get(),
-            "postfix": self.postfix_entry.get()
+            "postfix": self.postfix_entry.get(),
+            "use_prefix": self.use_prefix.get(),
+            "use_postfix": self.use_postfix.get()
         })
 
 
